@@ -23,6 +23,7 @@ def create_unique_directory():
 directory = create_unique_directory()
 
 def save_beam_to_h5():
+    '''assumes that your matlab saves a lucretia.mat file at the end of each simulation. This function converts that file to a .h5 file and saves it in the directory created above. If using this with a different matlab function then this must be updated.'''
     global counter
     # Convert .mat beam file to .h5 format
     P = ParticleGroup(data=lucretia_to_data('lucretia.mat', verbose=True))
@@ -35,9 +36,20 @@ def run_matlab(input_var, quadvalues):
     # Start MATLAB engine
     eng = matlab.engine.start_matlab()
     
-    # Assuming the MATLAB function is named 'run_function' and returns a dict
-    results = eng.run_function(input_var[0], input_var[1], input_var[2], quadvalues, input_var[3])
-    
+    # Assuming the MATLAB function is named 'run' and returns a dict
+    '''
+    Example of matlab function returning a dict:
+    function result = my_function(a, b, c)
+    % Some operations
+    val1 = a + b;
+    val2 = a * c;
+
+    % Return results as a struct
+    result = struct('sum', val1, 'product', val2);
+    end
+    '''
+    results = eng.run(input_var[0], input_var[1], input_var[2], quadvalues, input_var[3])
+    #uses save_beam_to_h5 definition
     P = save_beam_to_h5()
 
     # Convert MATLAB dict to python dict
@@ -57,7 +69,7 @@ def evaluate(variables):
     stats_dict = P.twiss('xy', fraction=.95)
     bunch_charge_final = P['charge']
     num_particles = len(P['x'])
-    bunch_length = P['sigma_t'] * 1e12  # Convert to ps
+    bunch_length = P['sigma_t'] * 1e12  # Converts to ps as there was a rounding error when saving super small values to yaml
     
     dictionary_outputs = {
         "emit_mean": results['emit_mean'],
